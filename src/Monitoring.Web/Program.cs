@@ -60,7 +60,6 @@ internal static class Seed
         var store = sp.GetRequiredService<ICheckStore>();
         var conn = cfg.GetConnectionString("MonitoringDb") ?? "";
 
-        // 1) SQL Agent job
         var sqlJob = new CheckDescriptor(
             Id: "etl-daily-sales",
             Type: "sql-agent-job",
@@ -74,7 +73,6 @@ internal static class Seed
             Tags: new[]{"nightly","sales"}
         );
 
-        // 2) Public HTTP endpoint
         var http = new CheckDescriptor(
             Id: "http-github",
             Type: "http",
@@ -87,7 +85,6 @@ internal static class Seed
             Tags: new[]{"http","public"}
         );
 
-        // 3) DB connection
         var db = new CheckDescriptor(
             Id: "db-primary",
             Type: "db-connection",
@@ -100,7 +97,6 @@ internal static class Seed
             Tags: new[]{"database"}
         );
 
-        // 4) API check with method/headers and JSONPath-like contains
         var api = new CheckDescriptor(
             Id: "api-status",
             Type: "api",
@@ -114,7 +110,6 @@ internal static class Seed
             Tags: new[]{"api"}
         );
 
-        // 5) Service account lock check (SQL login example)
         var svcAcct = new CheckDescriptor(
             Id: "svc-locks",
             Type: "serviceaccount-locks",

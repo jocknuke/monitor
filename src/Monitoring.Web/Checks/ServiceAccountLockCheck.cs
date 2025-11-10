@@ -5,10 +5,6 @@ using Monitoring.Web.Contracts;
 
 namespace Monitoring.Web.Checks;
 
-// Checks lock/disable status of a SQL Login (example service account).
-// Parameters:
-//  connectionString: server to query master/sys.sql_logins
-//  login: login name to inspect
 [Check("serviceaccount-locks")]
 public class ServiceAccountLockCheck : ICheck
 {
@@ -25,20 +21,16 @@ FROM sys.sql_logins WHERE name = @login";
 
         try
         {
-            await using var conn = new SqlConnection(cs);
+            await using var conn = new Microsoft.Data.SqlClient.SqlConnection(cs);
             await conn.OpenAsync(ct);
             var row = await conn.QueryFirstOrDefaultAsync(Sql, new { login });
             if (row is null) return new CheckResult(d.Id, DateTimeOffset.UtcNow, CheckStatus.Unknown, $"Login not found: {login}");
 
             bool disabled = (row.is_disabled ?? false);
-            DateTimeOffset? lockout = row.LockoutTime as DateTimeOffset?;
-            var status = (!disabled && lockout is null) ? CheckStatus.Healthy : CheckStatus.Unhealthy;
-            var msg = disabled ? "Login disabled" : (lockout is not null ? $"Locked at {lockout}" : "OK");
-
-            var metrics = new Dictionary<string,double>();
+            var status = disabled ? CheckStatus.Unhealthy : CheckStatus.Healthy;
+            var msg = disabled ? "Login disabled" : "OK";
             var dims = new Dictionary<string,string>{{"login", login}};
-
-            return new CheckResult(d.Id, DateTimeOffset.UtcNow, status, msg, metrics, dims);
+            return new CheckResult(d.Id, DateTimeOffset.UtcNow, status, msg, null, dims);
         }
         catch (Exception ex)
         {

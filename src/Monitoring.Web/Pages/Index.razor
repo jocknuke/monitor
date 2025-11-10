@@ -18,18 +18,12 @@
             <MudTd>@context.Name</MudTd>
             <MudTd>@context.Type</MudTd>
             <MudTd>
-                @if (_latest.TryGetValue(context.Id, out var last))
-                {
-                    @switch(last.Status)
-                    {
-                        case CheckStatus.Healthy: @<MudChip T="string" Color="Color.Success">Healthy</MudChip>; break;
-                        case CheckStatus.Degraded: @<MudChip T="string" Color="Color.Warning">Degraded</MudChip>; break;
-                        case CheckStatus.Unhealthy: @<MudChip T="string" Color="Color.Error">Unhealthy</MudChip>; break;
-                        default: @<MudChip T="string">Unknown</MudChip>; break;
-                    }
-                }
-                else
-                {
+                @if (_latest.TryGetValue(context.Id, out var last)) {
+                    @if (last.Status == CheckStatus.Healthy) { <MudChip T="string" Color="Color.Success">Healthy</MudChip> }
+                    else if (last.Status == CheckStatus.Degraded) { <MudChip T="string" Color="Color.Warning">Degraded</MudChip> }
+                    else if (last.Status == CheckStatus.Unhealthy) { <MudChip T="string" Color="Color.Error">Unhealthy</MudChip> }
+                    else { <MudChip T="string">Unknown</MudChip> }
+                } else {
                     <MudChip T="string">No data</MudChip>
                 }
             </MudTd>

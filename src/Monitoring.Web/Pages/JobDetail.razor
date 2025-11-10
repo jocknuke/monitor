@@ -1,5 +1,6 @@
 
 @page "/job/{Id}"
+@using MudBlazor
 @inject ICheckStore CheckStore
 @inject IResultStore ResultStore
 @inject SqlJobService SqlSvc
@@ -16,17 +17,17 @@
 {
     <MudCard Class="pa-4">
         <MudText Typo="Typo.h6">Last @DataCount Runs (Duration in minutes)</MudText>
-        <MudChart ChartType="ChartType.Line" @bind-Labels="_labels" @bind-Datasets="_data" />
+        <MudChart ChartType="ChartType.Line" Labels="_labels" ChartSeries="_series" />
     </MudCard>
 }
 else
 {
     <MudCard Class="pa-4">
         <MudText Typo="Typo.h6">Recent Results</MudText>
-        <MudList Dense="true">
+        <MudList T="CheckResult" Dense="true">
             @foreach (var r in _recent)
             {
-                <MudListItem>
+                <MudListItem T="CheckResult">
                     <MudText Typo="Typo.body2">@r.ObservedAt.ToLocalTime().ToString("g") — @r.Message</MudText>
                 </MudListItem>
             }
@@ -43,7 +44,7 @@ else
     private bool _isSqlJob = false;
 
     private string[] _labels = Array.Empty<string>();
-    private MudChartDataset[] _data = Array.Empty<MudChartDataset>();
+    private List<ChartSeries> _series = new();
     private List<CheckResult> _recent = new();
 
     private int DataCount => _labels.Length;
@@ -82,13 +83,7 @@ else
 
             _labels = history.Select(h => h.at.ToLocalTime().ToString("M/d")).ToArray();
             var minutes = history.Select(h => Math.Round(h.durationSec / 60.0, 2)).ToArray();
-            _data = new[] {
-                new MudChartDataset()
-                {
-                    Label = "Duration (min)",
-                    Data = minutes
-                }
-            };
+            _series = new() { new ChartSeries() { Name = "Duration (min)", Data = minutes } };
         }
         else
         {

@@ -29,7 +29,7 @@ public class ApiCheck : ICheck
             var headers = JsonSerializer.Deserialize<Dictionary<string,string>>(headersJson) ?? new();
             foreach (var kv in headers) req.Headers.TryAddWithoutValidation(kv.Key, kv.Value);
         }
-        catch { /* ignore bad headers */ }
+        catch { }
 
         if (!string.IsNullOrEmpty(body) && method.ToUpperInvariant() != "GET")
             req.Content = new StringContent(body, Encoding.UTF8, "application/json");
