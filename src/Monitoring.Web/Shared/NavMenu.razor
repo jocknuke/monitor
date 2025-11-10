@@ -1,0 +1,15 @@
+@namespace Monitoring.Web.Shared
+@*
+    NavMenu encapsulates the side navigation for the monitoring application. It retains
+    the feel of the default Blazor navigation menu by listing pages such as Counter
+    and Fetch Data in addition to the custom dashboard and processes views. Each
+    MudNavLink defines a navigation item with an icon and label. If you add more
+    pages to your app, include them here to expose them in the side navigation.
+*@
+<MudNavMenu>
+    <!-- Dashboard / Overview -->
+    <MudNavLink Href="/" Icon="@Icons.Material.Filled.Dashboard">Overview</MudNavLink>
+    <!-- Default Blazor sample pages -->
+    <MudNavLink Href="/counter" Icon="@Icons.Material.Filled.Add">Counter</MudNavLink>
+    <MudNavLink Href="/fetchdata" Icon="@Icons.Material.Filled.List">Fetch Data</MudNavLink>
+</MudNavMenu>

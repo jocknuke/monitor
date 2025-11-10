@@ -1,0 +1,42 @@
+@page "/processes"
+@inject ProcessService ProcessService
+@inject NavigationManager Nav
+@using Monitoring.Web.Models
+
+<h3>Nightly Processes</h3>
+
+<MudPaper Class="pa-4">
+    <MudTable Items="_processes" Hover="true" Dense="true" @bind-SelectedItem="_selected">
+        <HeaderContent>
+            <MudTh>Name</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh>Last Run</MudTh>
+            <MudTh>Duration (min)</MudTh>
+            <MudTh>Expected Range (min)</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd @onclick="() => NavigateToDetails(context.Name)" Style="cursor:pointer; color:var(--mud-theme-primary);">
+                @context.Name
+            </MudTd>
+            <MudTd><StatusDot Status="@context.Status" /></MudTd>
+            <MudTd>@context.LastRun.ToString("g")</MudTd>
+            <MudTd>@context.DurationMinutes</MudTd>
+            <MudTd>@context.ExpectedMinMinutes - @context.ExpectedMaxMinutes</MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private IEnumerable<ProcessSummary> _processes = Enumerable.Empty<ProcessSummary>();
+    private ProcessSummary? _selected;
+
+    protected override void OnInitialized()
+    {
+        _processes = ProcessService.GetProcesses();
+    }
+
+    private void NavigateToDetails(string name)
+    {
+        Nav.NavigateTo($"/processes/{Uri.EscapeDataString(name)}");
+    }
+}

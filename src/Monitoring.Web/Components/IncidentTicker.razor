@@ -1,0 +1,30 @@
+@namespace Monitoring.Web.Components
+@using Monitoring.Web.Models
+
+@if (Items != null && Items.Any())
+{
+    <MudPaper Class="pa-4">
+        <MudTable Items="Items" Dense="true">
+            <HeaderContent>
+                <MudTh>Severity</MudTh>
+                <MudTh>Title</MudTh>
+                <MudTh>Service</MudTh>
+                <MudTh>Opened</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd><SeverityPill Severity="@context.Severity"/></MudTd>
+                <MudTd>@context.Title</MudTd>
+                <MudTd>@context.ServiceName</MudTd>
+                <MudTd>@context.OpenedAt</MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudPaper>
+}
+else
+{
+    <MudText>No incidents.</MudText>
+}
+
+@code {
+    [Parameter] public IEnumerable<Incident> Items { get; set; } = new List<Incident>();
+}

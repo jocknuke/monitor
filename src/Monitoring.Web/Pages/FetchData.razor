@@ -1,0 +1,55 @@
+@page "/fetchdata"
+
+<PageTitle>Fetch Data</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-2">Weather Forecast</MudText>
+
+<MudText Class="mb-4">This page demonstrates fetching data from a service. The data below is mocked for
+    illustration purposes.</MudText>
+
+@if (_forecasts == null)
+{
+    <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+}
+else
+{
+    <MudTable Items="_forecasts" Dense="true" Hover="true" Class="mt-2">
+        <HeaderContent>
+            <MudTh>Date</MudTh>
+            <MudTh>Temp. (°C)</MudTh>
+            <MudTh>Temp. (°F)</MudTh>
+            <MudTh>Summary</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.Date.ToShortDateString()</MudTd>
+            <MudTd>@context.TemperatureC</MudTd>
+            <MudTd>@(context.TemperatureC * 9 / 5 + 32)</MudTd>
+            <MudTd>@context.Summary</MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private List<WeatherForecast>? _forecasts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Simulate an asynchronous load of data
+        await Task.Delay(500);
+        _forecasts = new List<WeatherForecast>
+        {
+            new WeatherForecast { Date = DateTime.Today, TemperatureC = 20, Summary = "Warm" },
+            new WeatherForecast { Date = DateTime.Today.AddDays(1), TemperatureC = 23, Summary = "Sunny" },
+            new WeatherForecast { Date = DateTime.Today.AddDays(2), TemperatureC = 18, Summary = "Cloudy" },
+            new WeatherForecast { Date = DateTime.Today.AddDays(3), TemperatureC = 15, Summary = "Rainy" },
+            new WeatherForecast { Date = DateTime.Today.AddDays(4), TemperatureC = 17, Summary = "Mild" }
+        };
+    }
+
+    private class WeatherForecast
+    {
+        public DateTime Date { get; set; }
+        public int TemperatureC { get; set; }
+        public string Summary { get; set; } = string.Empty;
+    }
+}

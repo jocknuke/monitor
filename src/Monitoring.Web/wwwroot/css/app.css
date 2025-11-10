@@ -1,0 +1,22 @@
+/* Custom styles */
+body {
+    margin: 0;
+    font-family: sans-serif;
+    /* Use a light background and dark text for the entire app. Without
+       explicit styling, MudBlazor defaults to dark surfaces which can
+       appear as large black boxes. Overriding the background ensures
+       a consistent light theme across all pages. */
+    background-color: #f5f5f5;
+    color: #000;
+}
+
+/* Override MudBlazor surfaces to use white backgrounds. Without these
+   overrides, MudBlazor components (papers, cards, main content and
+   drawer) default to dark backgrounds which may appear as black boxes. */
+.mud-paper,
+.mud-card,
+.mud-main-content,
+.mud-drawer {
+    background-color: #ffffff !important;
+    color: #000 !important;
+}

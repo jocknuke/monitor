@@ -1,0 +1,33 @@
+@using Monitoring.Web.Models
+
+<!--
+    SummaryTile displays a concise summary of a group of monitored items.
+    It shows the number of healthy items out of the total, the percentage
+    healthy and a small indicator showing how the value has changed since
+    the previous period.  The tile uses a MudPaper for a clean card
+    appearance and centres all text content.
+-->
+@code {
+    [Parameter]
+    public SummaryInfo Info { get; set; } = default!;
+}
+
+<MudPaper Class="pa-4 d-flex flex-column align-center" Style="min-width:150px;">
+    <MudText Typo="Typo.overline">@Info.Title</MudText>
+    <MudText Typo="Typo.h4">@Info.Healthy / @Info.Total</MudText>
+    <MudText Typo="Typo.caption">@Info.PercentHealthy.ToString("0.0")% healthy</MudText>
+    <MudText Typo="Typo.caption" Class="text-muted">
+        @if (Info.ChangePercent > 0)
+        {
+            <span>↑ @Info.ChangePercent.ToString("0.0")% vs last period</span>
+        }
+        else if (Info.ChangePercent < 0)
+        {
+            <span>↓ @Math.Abs(Info.ChangePercent).ToString("0.0")% vs last period</span>
+        }
+        else
+        {
+            <span>– no change vs last period</span>
+        }
+    </MudText>
+</MudPaper>

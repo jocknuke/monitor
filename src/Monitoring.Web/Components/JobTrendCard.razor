@@ -1,0 +1,51 @@
+@using Monitoring.Web.Models
+@using MudBlazor
+
+<!--
+    JobTrendCard displays a small trend card for a scheduled job.  It shows
+    metadata such as the last run duration, the median runtime and the
+    success rate, as well as a simple line chart plotting the last set of
+    run durations.  The status indicator chip changes colour based on
+    Job.Status.  We use MudBlazor's built‑in MudChart to avoid extra
+    dependencies.  The generic parameter (T="string") on MudChip fixes
+    type inference errors in newer MudBlazor versions.
+-->
+
+@code {
+    [Parameter] public JobTrendInfo Job { get; set; } = default!;
+
+    // Labels for the chart (1, 2, ... N)
+    private string[] Labels => Enumerable.Range(1, Job.Durations.Count).Select(i => i.ToString()).ToArray();
+
+    // Series representing the durations.  ChartSeries.Data must be double[].
+    private List<ChartSeries> Series => new()
+    {
+        new ChartSeries { Name = "Duration", Data = Job.Durations.Select(d => (double)d).ToArray() }
+    };
+
+    private MudBlazor.Color StatusColor(JobStatus status) => status switch
+    {
+        JobStatus.Ok => MudBlazor.Color.Success,
+        JobStatus.Warning => MudBlazor.Color.Warning,
+        JobStatus.Error => MudBlazor.Color.Error,
+        _ => MudBlazor.Color.Default
+    };
+}
+
+<MudPaper Class="pa-4" Style="height:100%;">
+    <MudStack Spacing="1">
+        <MudStack Row="true" AlignItems="AlignItems.Center" JustifyContent="Justify.SpaceBetween">
+            <MudText Typo="Typo.subtitle1">@Job.Name</MudText>
+            <MudChip T="string" Color="@StatusColor(Job.Status)" Variant="Variant.Filled" Size="Size.Small" Class="ml-1">
+                @Job.Status
+            </MudChip>
+        </MudStack>
+        <MudText Typo="Typo.caption">Last Run @Job.LastRun</MudText>
+        <MudText Typo="Typo.caption">Median @Job.Median</MudText>
+        <MudText Typo="Typo.caption">Success Rate @Job.SuccessRate.ToString("0.0")%</MudText>
+    </MudStack>
+    <div class="mt-2">
+        <MudChart ChartType="ChartType.Line" Labels="@Labels" ChartSeries="@Series" />
+    </div>
+    <MudText Typo="Typo.overline" Class="mt-1">Last @Job.Durations.Count runs</MudText>
+</MudPaper>
