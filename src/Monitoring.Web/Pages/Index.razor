@@ -1,162 +1,58 @@
+
 @page "/"
-@using Monitoring.Web.Models
-@inject DashboardService Service
+@inject ICheckStore CheckStore
+@inject IResultStore ResultStore
 
-<!--
-    Operations dashboard replicating the layout from the provided mockup.  It
-    includes environment and time range filters, summary tiles, job trend
-    cards, a search bar with a services table and a panel of recent alerts.
--->
-
-<MudStack Row="true" Spacing="2" Class="mb-4">
-    <MudSelect T="string" @bind-Value="_selectedEnv" Label="Environment" Dense="true" Style="min-width:200px;">
-        <MudSelectItem Value="@EnvAll">All Environments</MudSelectItem>
-        <MudSelectItem Value="@EnvProduction">Production</MudSelectItem>
-        <MudSelectItem Value="@EnvStaging">Staging</MudSelectItem>
-        <MudSelectItem Value="@EnvDevelopment">Development</MudSelectItem>
-    </MudSelect>
-    <MudSelect T="string" @bind-Value="_selectedRange" Label="Time Range" Dense="true" Style="min-width:200px;">
-        @* Use simple values for select items (no spaces) to avoid Razor parsing issues. The visible text still contains spaces. *@
-        <MudSelectItem Value="@RangeLast24h">Last 24h</MudSelectItem>
-        <MudSelectItem Value="@RangeLast7d">Last 7 days</MudSelectItem>
-        <MudSelectItem Value="@RangeLast30d">Last 30 days</MudSelectItem>
-    </MudSelect>
-</MudStack>
-
-<MudGrid>
-    @foreach (var summary in Service.Summaries)
-    {
-        <MudItem xs="6" sm="4" md="2">
-            <SummaryTile Info="summary" />
-        </MudItem>
-    }
-</MudGrid>
-
-<MudText Typo="Typo.h5" Class="mt-6 mb-2">Nightly Job Trends</MudText>
-
-<MudGrid>
-    @foreach (var job in Service.JobTrends)
-    {
-        <MudItem xs="12" sm="6" md="4">
-            <JobTrendCard Job="job" />
-        </MudItem>
-    }
-</MudGrid>
-
-<MudStack Row="true" Spacing="2" Class="mt-6 mb-2">
-    <MudTextField T="string" Placeholder="Search services, teams, or tags..." @bind-Value="_search" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Style="width:100%;" />
-</MudStack>
-
-<MudGrid>
-    <MudItem xs="12" md="8">
-        <MudTable Items="FilteredServices" Hover="true" Dense="true">
-            <HeaderContent>
-                <MudTh>Service</MudTh>
-                <MudTh>Type</MudTh>
-                <MudTh>Status</MudTh>
-                <MudTh>Environment</MudTh>
-                <MudTh>Team</MudTh>
-                <MudTh>Last Check</MudTh>
-                <MudTh>SLA</MudTh>
-            </HeaderContent>
-            <RowTemplate>
-                <MudTd>@context.Name</MudTd>
-                <MudTd>@context.Type</MudTd>
-                <MudTd>
-                    <MudChip T="string" Color="@StatusColor(context.Status)" Variant="Variant.Filled" Size="Size.Small">@context.Status</MudChip>
-                </MudTd>
-                <MudTd>@context.Environment</MudTd>
-                <MudTd>@context.Team</MudTd>
-                <MudTd>@context.LastCheck</MudTd>
-                <MudTd>
-                    <MudChip T="string" Color="@SlaColor(context.SLA)" Variant="Variant.Filled" Size="Size.Small">@context.SLA</MudChip>
-                </MudTd>
-            </RowTemplate>
-        </MudTable>
-    </MudItem>
-    <MudItem xs="12" md="4">
-        <MudPaper Class="pa-4" Style="height:100%;">
-            <MudText Typo="Typo.h6">Recent Alerts</MudText>
-            <MudList T="AlertInfo" Class="mt-2">
-                @foreach (var alert in Service.Alerts)
+<MudPaper Class="pa-4">
+    <MudText Typo="Typo.h5">Monitored Checks</MudText>
+    <MudTable Items="_rows" Dense="true" Hover="true">
+        <HeaderContent>
+            <MudTh>Name</MudTh>
+            <MudTh>Type</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh>Message</MudTh>
+            <MudTh>Last Updated</MudTh>
+            <MudTh></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.Name</MudTd>
+            <MudTd>@context.Type</MudTd>
+            <MudTd>
+                @if (_latest.TryGetValue(context.Id, out var last))
                 {
-                    <MudListItem T="AlertInfo">
-                        <MudStack Spacing="1">
-                            <MudChip T="string" Color="@AlertColor(alert.Severity)" Variant="Variant.Filled" Size="Size.Small">@alert.Severity</MudChip>
-                            <MudText Typo="Typo.subtitle2">@alert.Name</MudText>
-                            <MudText Typo="Typo.caption">@alert.Message</MudText>
-                            <MudText Typo="Typo.caption" Class="text-muted">@alert.TimeAgo</MudText>
-                            @if (!alert.IsAcknowledged)
-                            {
-                                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small">Acknowledge</MudButton>
-                            }
-                            else
-                            {
-                                <MudText Typo="Typo.caption" Class="text-muted">Acknowledged by @alert.User</MudText>
-                            }
-                        </MudStack>
-                    </MudListItem>
+                    @switch(last.Status)
+                    {
+                        case CheckStatus.Healthy: @<MudChip T="string" Color="Color.Success">Healthy</MudChip>; break;
+                        case CheckStatus.Degraded: @<MudChip T="string" Color="Color.Warning">Degraded</MudChip>; break;
+                        case CheckStatus.Unhealthy: @<MudChip T="string" Color="Color.Error">Unhealthy</MudChip>; break;
+                        default: @<MudChip T="string">Unknown</MudChip>; break;
+                    }
                 }
-            </MudList>
-        </MudPaper>
-    </MudItem>
-</MudGrid>
+                else
+                {
+                    <MudChip T="string">No data</MudChip>
+                }
+            </MudTd>
+            <MudTd>@(_latest.TryGetValue(context.Id, out var r) ? r.Message : "")</MudTd>
+            <MudTd>@(_latest.TryGetValue(context.Id, out var r2) ? r2.ObservedAt.ToLocalTime().ToString("g") : "")</MudTd>
+            <MudTd>
+                <MudButton Variant="Variant.Text" Href=$"/job/{context.Id}">Details</MudButton>
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudPaper>
 
 @code {
-    private string _selectedEnv = "All";
-    private string _selectedRange = "Last 24h";
-    private string _search = string.Empty;
+    private List<CheckDescriptor> _rows = new();
+    private Dictionary<string, CheckResult> _latest = new();
 
-    // Explicit constants for select values. Using variables ensures the Razor
-    // compiler recognises the value names and avoids CS0103 errors when the
-    // Value attribute references an identifier. Without these definitions,
-    // using unquoted identifiers (e.g. Value="All") can result in the
-    // compiler treating them as undefined variables.
-    private readonly string EnvAll = "All";
-    private readonly string EnvProduction = "Production";
-    private readonly string EnvStaging = "Staging";
-    private readonly string EnvDevelopment = "Development";
-    private readonly string RangeLast24h = "Last24h";
-    private readonly string RangeLast7d = "Last7d";
-    private readonly string RangeLast30d = "Last30d";
-
-    private IEnumerable<ServiceInfo> FilteredServices
+    protected override async Task OnInitializedAsync()
     {
-        get
+        _rows = (await CheckStore.ListAsync()).ToList();
+        foreach (var c in _rows)
         {
-            var query = _search?.Trim();
-            if (string.IsNullOrWhiteSpace(query))
-            {
-                return Service.Services;
-            }
-            return Service.Services.Where(s =>
-                s.Name.Contains(query, StringComparison.OrdinalIgnoreCase)
-                || s.Team.Contains(query, StringComparison.OrdinalIgnoreCase)
-                || s.Environment.Contains(query, StringComparison.OrdinalIgnoreCase));
+            var last = await ResultStore.GetLatestAsync(c.Id);
+            if (last is not null) _latest[c.Id] = last;
         }
     }
-
-    private MudBlazor.Color StatusColor(ServiceStatus status) => status switch
-    {
-        ServiceStatus.Ok => MudBlazor.Color.Success,
-        ServiceStatus.Warning => MudBlazor.Color.Warning,
-        ServiceStatus.Error => MudBlazor.Color.Error,
-        _ => MudBlazor.Color.Default
-    };
-
-    private MudBlazor.Color SlaColor(string sla) => sla switch
-    {
-        "Meeting" => MudBlazor.Color.Success,
-        "At-Risk" => MudBlazor.Color.Warning,
-        "Breached" => MudBlazor.Color.Error,
-        _ => MudBlazor.Color.Default
-    };
-
-    private MudBlazor.Color AlertColor(AlertSeverity sev) => sev switch
-    {
-        AlertSeverity.Critical => MudBlazor.Color.Error,
-        AlertSeverity.Warning => MudBlazor.Color.Warning,
-        AlertSeverity.Info => MudBlazor.Color.Info,
-        _ => MudBlazor.Color.Default
-    };
 }

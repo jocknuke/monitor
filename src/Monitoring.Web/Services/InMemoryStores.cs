@@ -1,97 +1,56 @@
-using System;
+
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Monitoring.Web.Contracts;
 
-namespace Monitoring.Web.Services
+namespace Monitoring.Web.Services;
+
+public interface ICheckStore
 {
-    /// <summary>
-    /// Interface for a repository of check descriptors. The UI and scheduler use
-    /// this abstraction to create, update and list checks.
-    /// </summary>
-    public interface ICheckStore
+    Task<IReadOnlyList<CheckDescriptor>> ListAsync(CancellationToken ct = default);
+    Task UpsertAsync(CheckDescriptor d, CancellationToken ct = default);
+    Task<CheckDescriptor?> GetAsync(string id, CancellationToken ct = default);
+}
+
+public class InMemoryCheckStore : ICheckStore
+{
+    private readonly ConcurrentDictionary<string, CheckDescriptor> _checks = new();
+    public Task<IReadOnlyList<CheckDescriptor>> ListAsync(CancellationToken ct = default)
+        => Task.FromResult((IReadOnlyList<CheckDescriptor>)_checks.Values.OrderBy(c => c.Name).ToList());
+    public Task UpsertAsync(CheckDescriptor d, CancellationToken ct = default)
+    { _checks[d.Id] = d; return Task.CompletedTask; }
+    public Task<CheckDescriptor?> GetAsync(string id, CancellationToken ct = default)
+        => Task.FromResult(_checks.TryGetValue(id, out var d) ? d : null);
+}
+
+public interface IResultStore
+{
+    Task AppendAsync(CheckResult r, CancellationToken ct = default);
+    Task<CheckResult?> GetLatestAsync(string checkId, CancellationToken ct = default);
+    Task<IReadOnlyList<CheckResult>> ListRecentAsync(string checkId, int take = 30, CancellationToken ct = default);
+}
+
+public class InMemoryResultStore : IResultStore
+{
+    private readonly LinkedList<CheckResult> _recent = new();
+    private readonly object _lock = new();
+
+    public Task AppendAsync(CheckResult r, CancellationToken ct = default)
     {
-        Task<IEnumerable<CheckDescriptor>> ListAsync();
-        Task UpsertAsync(CheckDescriptor descriptor);
+        lock (_lock)
+        {
+            _recent.AddFirst(r);
+            while (_recent.Count > 2000) _recent.RemoveLast();
+        }
+        return Task.CompletedTask;
     }
 
-    /// <summary>
-    /// Interface for storing check results. This repository maintains a limited
-    /// buffer of recent results per check. The UI consumes these results to
-    /// display history or trends.
-    /// </summary>
-    public interface IResultStore
+    public Task<CheckResult?> GetLatestAsync(string checkId, CancellationToken ct = default)
     {
-        Task AddResultAsync(CheckResult result);
-        Task<IEnumerable<CheckResult>> ListAsync(string checkId, int max = 100);
+        lock (_lock) return Task.FromResult(_recent.FirstOrDefault(x => x.CheckId == checkId));
     }
 
-    /// <summary>
-    /// Simple in-memory implementation of ICheckStore. This implementation is
-    /// suitable for demonstration and testing; production systems should replace
-    /// this with a durable store such as a database.
-    /// </summary>
-    public class InMemoryCheckStore : ICheckStore
+    public Task<IReadOnlyList<CheckResult>> ListRecentAsync(string checkId, int take = 30, CancellationToken ct = default)
     {
-        private readonly List<CheckDescriptor> _descriptors = new();
-
-        public Task<IEnumerable<CheckDescriptor>> ListAsync()
-        {
-            return Task.FromResult(_descriptors.AsEnumerable());
-        }
-
-        public Task UpsertAsync(CheckDescriptor descriptor)
-        {
-            var index = _descriptors.FindIndex(d => d.Id == descriptor.Id);
-            if (index >= 0)
-            {
-                _descriptors[index] = descriptor;
-            }
-            else
-            {
-                _descriptors.Add(descriptor);
-            }
-            return Task.CompletedTask;
-        }
-    }
-
-    /// <summary>
-    /// In-memory result store that keeps a sliding window of check results in a
-    /// thread-safe dictionary keyed by checkId. The window size can be tuned by
-    /// adjusting the maxItems parameter when enumerating results.
-    /// </summary>
-    public class InMemoryResultStore : IResultStore
-    {
-        private readonly ConcurrentDictionary<string, ConcurrentQueue<CheckResult>> _results = new();
-        private readonly int _maxItems;
-
-        public InMemoryResultStore(int maxItems = 200)
-        {
-            _maxItems = maxItems;
-        }
-
-        public Task AddResultAsync(CheckResult result)
-        {
-            var queue = _results.GetOrAdd(result.CheckId, _ => new ConcurrentQueue<CheckResult>());
-            queue.Enqueue(result);
-            while (queue.Count > _maxItems && queue.TryDequeue(out _))
-            {
-                // discard old results
-            }
-            return Task.CompletedTask;
-        }
-
-        public Task<IEnumerable<CheckResult>> ListAsync(string checkId, int max = 100)
-        {
-            if (_results.TryGetValue(checkId, out var queue))
-            {
-                // return most recent 'max' results in reverse chronological order
-                var list = queue.Reverse().Take(max);
-                return Task.FromResult(list);
-            }
-            return Task.FromResult(Enumerable.Empty<CheckResult>());
-        }
+        lock (_lock) return Task.FromResult((IReadOnlyList<CheckResult>)_recent.Where(x => x.CheckId == checkId).Take(take).Reverse().ToList());
     }
 }

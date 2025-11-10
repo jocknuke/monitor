@@ -1,33 +1,20 @@
-@namespace Monitoring.Web.Shared
+
 @inherits LayoutComponentBase
+<MudThemeProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+<MudPopoverProvider />
 
 <MudLayout>
-    <MudAppBar Dense="true">
+    <MudAppBar Elevation="1">
         <MudText Typo="Typo.h6">Ops Monitor</MudText>
     </MudAppBar>
-    <!--
-        Use a custom NavMenu component for the side navigation. This mirrors the default
-        Blazor template behaviour where the navigation items live in their own component.
-        NavMenu includes links to the dashboard, processes list and the default
-        Blazor pages such as Counter and Fetch Data. Keeping the navigation in a
-        dedicated component makes it easy to extend or reorder items without
-        modifying the layout itself.
-    -->
-    <MudDrawer Open="true" ClipMode="DrawerClipMode.Always">
+    <MudDrawer Open="true" Variant="DrawerVariant.Mini">
         <NavMenu />
     </MudDrawer>
     <MudMainContent>
-        <!--
-            Register providers that support dialogs, snackbars and popovers. MudBlazor
-            requires these providers to be present in the component tree when
-            dialogs, snackbars or popovers are used. Without them, MudBlazor
-            throws InvalidOperationException at runtime. Providers can be placed
-            here (inside MainContent) to apply to all pages rendered via this
-            layout.
-        -->
-        <MudDialogProvider />
-        <MudSnackbarProvider />
-        <MudPopoverProvider />
-        @Body
+        <MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
+            @Body
+        </MudContainer>
     </MudMainContent>
 </MudLayout>

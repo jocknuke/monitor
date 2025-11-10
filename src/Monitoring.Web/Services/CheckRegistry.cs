@@ -1,44 +1,30 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
+
 using System.Reflection;
 using Monitoring.Web.Contracts;
 
-namespace Monitoring.Web.Services
+namespace Monitoring.Web.Services;
+
+public interface ICheckRegistry
 {
-    /// <summary>
-    /// Resolves ICheck implementations by their CheckAttribute type. At startup,
-    /// the registry collects all registered ICheck instances and indexes them
-    /// by the type string specified on their CheckAttribute.
-    /// </summary>
-    public interface ICheckRegistry
+    ICheck? Resolve(string type);
+    IEnumerable<string> RegisteredTypes { get; }
+}
+
+public class CheckRegistry : ICheckRegistry
+{
+    private readonly IServiceProvider _sp;
+    private readonly Dictionary<string, Type> _map;
+    public CheckRegistry(IServiceProvider sp)
     {
-        /// <summary>
-        /// Returns the ICheck implementation for the given type, or null if none exists.
-        /// </summary>
-        ICheck? GetCheck(string type);
+        _sp = sp;
+        _map = AppDomain.CurrentDomain.GetAssemblies()
+            .SelectMany(a => a.GetTypes())
+            .Where(t => typeof(ICheck).IsAssignableFrom(t) && !t.IsAbstract)
+            .Select(t => new { t, attr = t.GetCustomAttribute<CheckAttribute>() })
+            .Where(x => x.attr is not null)
+            .ToDictionary(x => x!.attr!.Type, x => x!.t, StringComparer.OrdinalIgnoreCase);
     }
 
-    public class CheckRegistry : ICheckRegistry
-    {
-        private readonly IDictionary<string, ICheck> _checks;
-
-        public CheckRegistry(IEnumerable<ICheck> checks)
-        {
-            _checks = new Dictionary<string, ICheck>(StringComparer.OrdinalIgnoreCase);
-            foreach (var check in checks)
-            {
-                var attr = check.GetType().GetCustomAttribute<CheckAttribute>();
-                if (attr != null && !_checks.ContainsKey(attr.Type))
-                {
-                    _checks[attr.Type] = check;
-                }
-            }
-        }
-
-        public ICheck? GetCheck(string type)
-        {
-            return _checks.TryGetValue(type, out var check) ? check : null;
-        }
-    }
+    public ICheck? Resolve(string type) => _map.TryGetValue(type, out var t) ? (ICheck?)_sp.GetService(t)! : null;
+    public IEnumerable<string> RegisteredTypes => _map.Keys;
 }

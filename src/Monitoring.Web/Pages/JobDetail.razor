@@ -1,0 +1,98 @@
+
+@page "/job/{Id}"
+@inject ICheckStore CheckStore
+@inject IResultStore ResultStore
+@inject SqlJobService SqlSvc
+
+<MudPaper Class="pa-4 mb-4">
+    <MudText Typo="Typo.h5">@_title</MudText>
+    <MudStack Row="true" Spacing="2">
+        <MudChip T="string" Color="@_statusColor">@_statusText</MudChip>
+        <MudText Typo="Typo.body2">@_msg</MudText>
+    </MudStack>
+</MudPaper>
+
+@if (_isSqlJob)
+{
+    <MudCard Class="pa-4">
+        <MudText Typo="Typo.h6">Last @DataCount Runs (Duration in minutes)</MudText>
+        <MudChart ChartType="ChartType.Line" @bind-Labels="_labels" @bind-Datasets="_data" />
+    </MudCard>
+}
+else
+{
+    <MudCard Class="pa-4">
+        <MudText Typo="Typo.h6">Recent Results</MudText>
+        <MudList Dense="true">
+            @foreach (var r in _recent)
+            {
+                <MudListItem>
+                    <MudText Typo="Typo.body2">@r.ObservedAt.ToLocalTime().ToString("g") — @r.Message</MudText>
+                </MudListItem>
+            }
+        </MudList>
+    </MudCard>
+}
+
+@code {
+    [Parameter] public string? Id { get; set; }
+    private string _title = "";
+    private string _statusText = "Unknown";
+    private Color _statusColor = Color.Default;
+    private string _msg = "";
+    private bool _isSqlJob = false;
+
+    private string[] _labels = Array.Empty<string>();
+    private MudChartDataset[] _data = Array.Empty<MudChartDataset>();
+    private List<CheckResult> _recent = new();
+
+    private int DataCount => _labels.Length;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Id)) return;
+        var desc = await CheckStore.GetAsync(Id);
+        if (desc is null) return;
+
+        _title = desc.Name;
+        _isSqlJob = string.Equals(desc.Type, "sql-agent-job", StringComparison.OrdinalIgnoreCase);
+
+        var last = await ResultStore.GetLatestAsync(desc.Id);
+        if (last is not null)
+        {
+            (_statusText, _statusColor) = last.Status switch
+            {
+                CheckStatus.Healthy => ("Healthy", Color.Success),
+                CheckStatus.Unhealthy => ("Unhealthy", Color.Error),
+                CheckStatus.Degraded => ("Degraded", Color.Warning),
+                _ => ("Unknown", Color.Default)
+            };
+            _msg = last.Message ?? "";
+        }
+
+        if (_isSqlJob)
+        {
+            var cs = desc.Parameters.GetValueOrDefault("connectionString") ?? "";
+            var job = desc.Parameters.GetValueOrDefault("jobName") ?? desc.Name;
+            int.TryParse(desc.Parameters.GetValueOrDefault("historyCount") ?? "30", out var take);
+            if (take <= 0) take = 30;
+
+            var (exists, lastStatus, lastRunAt, history) = await SqlSvc.GetJobSummaryAndHistoryAsync(cs, job, take);
+            if (!exists) { _statusText = "Unknown"; _msg = "Job not found"; return; }
+
+            _labels = history.Select(h => h.at.ToLocalTime().ToString("M/d")).ToArray();
+            var minutes = history.Select(h => Math.Round(h.durationSec / 60.0, 2)).ToArray();
+            _data = new[] {
+                new MudChartDataset()
+                {
+                    Label = "Duration (min)",
+                    Data = minutes
+                }
+            };
+        }
+        else
+        {
+            _recent = (await ResultStore.ListRecentAsync(desc.Id, 30)).ToList();
+        }
+    }
+}
