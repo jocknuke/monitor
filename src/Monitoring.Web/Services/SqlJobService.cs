@@ -48,8 +48,8 @@ GROUP BY j.name, j.enabled;";
         DateTimeOffset? lastRunAt = summary?.LastRunAt;
 
         var history = new List<(DateTimeOffset at, int durationSec, int status)>();
-        for (int i=0;i<hist.Count;i++) {
-            var h = hist[i];
+        foreach (var h in hist)
+        {
             history.Add(( (DateTimeOffset)h.RunAt, (int)h.DurationSec, (int)(h.run_status ?? 3) ));
         }
 

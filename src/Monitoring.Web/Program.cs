@@ -6,31 +6,33 @@ using Monitoring.Web.Contracts;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Bind checks from configuration with reloadOnChange
+builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+
+// Blazor + Mud
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddMudServices();
-builder.Services.AddHttpClient();
+builder.Services.AddAntiforgery();
 
 // Core stores and registry
 builder.Services.AddSingleton<ICheckStore, InMemoryCheckStore>();
 builder.Services.AddSingleton<IResultStore, InMemoryResultStore>();
 builder.Services.AddSingleton<ICheckRegistry, CheckRegistry>();
-
-// Domain services
 builder.Services.AddSingleton<SqlJobService>();
+builder.Services.AddHttpClient();
 
-// Register checks
+// Register built-in checks (plugin style via attribute type keys)
 builder.Services.AddSingleton<ICheck, Monitoring.Web.Checks.SqlAgentJobCheck>();
 builder.Services.AddSingleton<ICheck, Monitoring.Web.Checks.HttpEndpointCheck>();
 builder.Services.AddSingleton<ICheck, Monitoring.Web.Checks.DbConnectionCheck>();
-builder.Services.AddSingleton<ICheck, Monitoring.Web.Checks.ApiCheck>();
-builder.Services.AddSingleton<ICheck, Monitoring.Web.Checks.ServiceAccountLockCheck>();
 
-// Scheduler
+// Optional SignalR hub for push
+builder.Services.AddSignalR();
+
+// Scheduler + config loader
+builder.Services.AddSingleton<ConfigCheckLoader>();
 builder.Services.AddHostedService<CheckSchedulerService>();
-
-// Antiforgery for interactive endpoints
-builder.Services.AddAntiforgery();
 
 var app = builder.Build();
 
@@ -46,83 +48,14 @@ app.UseRouting();
 app.UseAntiforgery();
 
 app.MapBlazorHub();
+app.MapHub<ResultsHub>("/hubs/results");
 app.MapFallbackToPage("/_Host");
 
-Seed.SeedChecks(app.Services);
+// Seed from config initially
+using (var scope = app.Services.CreateScope())
+{
+    var loader = scope.ServiceProvider.GetRequiredService<ConfigCheckLoader>();
+    await loader.ApplyFromConfigurationAsync();
+}
 
 app.Run();
-
-internal static class Seed
-{
-    public static void SeedChecks(IServiceProvider sp)
-    {
-        var cfg = sp.GetRequiredService<IConfiguration>();
-        var store = sp.GetRequiredService<ICheckStore>();
-        var conn = cfg.GetConnectionString("MonitoringDb") ?? "";
-
-        var sqlJob = new CheckDescriptor(
-            Id: "etl-daily-sales",
-            Type: "sql-agent-job",
-            Name: "ETL: Daily Sales",
-            Interval: TimeSpan.FromMinutes(2),
-            Parameters: new Dictionary<string,string> {
-                {"connectionString", conn},
-                {"jobName", "ETL: Daily Sales"},
-                {"historyCount", "30"}
-            },
-            Tags: new[]{"nightly","sales"}
-        );
-
-        var http = new CheckDescriptor(
-            Id: "http-github",
-            Type: "http",
-            Name: "HTTP: Github API",
-            Interval: TimeSpan.FromMinutes(1),
-            Parameters: new Dictionary<string,string> {
-                {"url","https://api.github.com/"},
-                {"timeoutMs","8000"}
-            },
-            Tags: new[]{"http","public"}
-        );
-
-        var db = new CheckDescriptor(
-            Id: "db-primary",
-            Type: "db-connection",
-            Name: "DB: Primary",
-            Interval: TimeSpan.FromMinutes(2),
-            Parameters: new Dictionary<string,string> {
-                {"connectionString", conn},
-                {"testQuery","SELECT 1"}
-            },
-            Tags: new[]{"database"}
-        );
-
-        var api = new CheckDescriptor(
-            Id: "api-status",
-            Type: "api",
-            Name: "API: Status",
-            Interval: TimeSpan.FromMinutes(1),
-            Parameters: new Dictionary<string,string> {
-                {"url","https://httpbin.org/anything"},
-                {"method","GET"},
-                {"expectContains","url"}
-            },
-            Tags: new[]{"api"}
-        );
-
-        var svcAcct = new CheckDescriptor(
-            Id: "svc-locks",
-            Type: "serviceaccount-locks",
-            Name: "Service Accounts: Lock Status",
-            Interval: TimeSpan.FromMinutes(5),
-            Parameters: new Dictionary<string,string> {
-                {"connectionString", conn},
-                {"login","svc_etl_runner"}
-            },
-            Tags: new[]{"security"}
-        );
-
-        foreach (var d in new[]{sqlJob, http, db, api, svcAcct})
-            store.UpsertAsync(d).GetAwaiter().GetResult();
-    }
-}

@@ -7,6 +7,7 @@ namespace Monitoring.Web.Services;
 public interface ICheckStore
 {
     Task<IReadOnlyList<CheckDescriptor>> ListAsync(CancellationToken ct = default);
+    Task UpsertManyAsync(IEnumerable<CheckDescriptor> d, CancellationToken ct = default);
     Task UpsertAsync(CheckDescriptor d, CancellationToken ct = default);
     Task<CheckDescriptor?> GetAsync(string id, CancellationToken ct = default);
 }
@@ -14,10 +15,16 @@ public interface ICheckStore
 public class InMemoryCheckStore : ICheckStore
 {
     private readonly ConcurrentDictionary<string, CheckDescriptor> _checks = new();
+
     public Task<IReadOnlyList<CheckDescriptor>> ListAsync(CancellationToken ct = default)
         => Task.FromResult((IReadOnlyList<CheckDescriptor>)_checks.Values.OrderBy(c => c.Name).ToList());
+
+    public Task UpsertManyAsync(IEnumerable<CheckDescriptor> d, CancellationToken ct = default)
+    { foreach (var x in d) _checks[x.Id] = x; return Task.CompletedTask; }
+
     public Task UpsertAsync(CheckDescriptor d, CancellationToken ct = default)
     { _checks[d.Id] = d; return Task.CompletedTask; }
+
     public Task<CheckDescriptor?> GetAsync(string id, CancellationToken ct = default)
         => Task.FromResult(_checks.TryGetValue(id, out var d) ? d : null);
 }

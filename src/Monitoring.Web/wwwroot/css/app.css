@@ -1,5 +1,4 @@
 
 html, body { height: 100%; }
 body { margin: 0; background: #fafafa; color: #212529; }
-.spinner { padding: 24px; font-family: Arial, sans-serif; }
 .mud-paper, .mud-card, .mud-appbar, .mud-drawer { background-color: #ffffff; }

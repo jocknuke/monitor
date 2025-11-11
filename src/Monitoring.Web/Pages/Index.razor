@@ -35,18 +35,3 @@
         </RowTemplate>
     </MudTable>
 </MudPaper>
-
-@code {
-    private List<CheckDescriptor> _rows = new();
-    private Dictionary<string, CheckResult> _latest = new();
-
-    protected override async Task OnInitializedAsync()
-    {
-        _rows = (await CheckStore.ListAsync()).ToList();
-        foreach (var c in _rows)
-        {
-            var last = await ResultStore.GetLatestAsync(c.Id);
-            if (last is not null) _latest[c.Id] = last;
-        }
-    }
-}

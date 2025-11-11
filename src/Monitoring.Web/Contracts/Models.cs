@@ -7,7 +7,8 @@ public record CheckDescriptor(
     string Id,
     string Type,
     string Name,
-    TimeSpan Interval,
+    string? Cron,                // e.g. "*/2 * * * *"
+    int? IntervalSeconds,        // optional simple interval
     IReadOnlyDictionary<string,string> Parameters,
     IReadOnlyList<string> Tags,
     bool Enabled = true);
