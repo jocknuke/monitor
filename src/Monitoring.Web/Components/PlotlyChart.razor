@@ -1,0 +1,18 @@
+
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
+
+<div @ref="_container" style="width:100%;height:@(HeightPx)px;"></div>
+
+@code {
+    [Parameter] public object? Data { get; set; }
+    [Parameter] public object? Layout { get; set; }
+    [Parameter] public object? Config { get; set; }
+    [Parameter] public int HeightPx { get; set; } = 220;
+
+    private ElementReference _container;
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await JS.InvokeVoidAsync("opsmon.plotly.render", _container, Data, Layout, Config);
+    }
+}

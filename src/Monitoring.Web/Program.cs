@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Components;
 using MudBlazor.Services;
 using Monitoring.Web.Services;
 using Monitoring.Web.Contracts;
+using Monitoring.Web.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 

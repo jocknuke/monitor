@@ -2,3 +2,16 @@
 html, body { height: 100%; }
 body { margin: 0; background: #fafafa; color: #212529; }
 .mud-paper, .mud-card, .mud-appbar, .mud-drawer { background-color: #ffffff; }
+
+
+/* Dashboard polish */
+.kpi-card { border: 1px solid var(--mud-palette-lines-default); border-radius: 12px; padding: 16px; }
+.kpi-title { opacity:.7; font-size:.9rem; }
+.kpi-value { font-weight:600; font-size:1.25rem; }
+.kpi-sub { opacity:.6; font-size:.8rem; }
+.trend-card { border: 1px solid var(--mud-palette-lines-default); border-radius: 12px; padding: 16px; height: 320px; }
+.recent-alerts .mud-list-item { border: 1px solid var(--mud-palette-lines-default); border-radius: 10px; margin-bottom: 8px; }
+.table-actions a { text-decoration: none; }
+.searchbar .mud-input { max-width: 420px; }
+.toolbar .mud-select, .toolbar .mud-input { margin-right: 8px; }
+
