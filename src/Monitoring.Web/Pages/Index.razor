@@ -1,4 +1,3 @@
-
 @page "/"
 @using MudBlazor
 @inject ICheckStore CheckStore
@@ -13,17 +12,28 @@
             <MudAvatar Icon="@Icons.Material.Filled.MonitorHeart" Size="Size.Medium" />
             <MudStack>
                 <MudText Typo="Typo.h6">IT Operations Monitor</MudText>
-                <MudText Typo="Typo.caption" Class="opacity-70">System health & batch processing</MudText>
+                <MudText Typo="Typo.caption" Class="opacity-70">
+                    System health &amp; nightly processing
+                </MudText>
             </MudStack>
 
             <MudSpacer />
 
-            
-<MudSelect T="string" @bind-Value="_window" Label="Window" Dense="true">
-    <MudSelectItem T="string" Value="24h">Last 24h</MudSelectItem>
-    <MudSelectItem T="string" Value="7d">Last 7d</MudSelectItem>
-    <MudSelectItem T="string" Value="30d">Last 30d</MudSelectItem>
-</MudSelect>
+                    <!-- Environment filter -->
+            <MudSelect T="string" Label="Environment" Dense="true" @bind-Value="_selectedEnv" Class="w-40">
+                <MudSelectItem T="string" Value="@("__ALL__")">All Environments</MudSelectItem>
+                @foreach (var env in _environments)
+                {
+                    <MudSelectItem T="string" Value="@env">@env</MudSelectItem>
+                }
+            </MudSelect>
+
+            <!-- Time window -->
+            <MudSelect T="string" Label="Window" Dense="true" @bind-Value="_window">
+                <MudSelectItem T="string" Value="@("Last24Hours")">Last 24h</MudSelectItem>
+                <MudSelectItem T="string" Value="@("Last7Days")">Last 7d</MudSelectItem>
+                <MudSelectItem T="string" Value="@("Last30Days")">Last 30d</MudSelectItem>
+            </MudSelect>
         </MudStack>
     </MudPaper>
 
@@ -46,7 +56,7 @@
         <MudItem xs="12" md="8">
             <div class="trend-card">
                 <MudStack Spacing="1">
-                    <MudStack Row="true" AlignItems="AlignItems.Center">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
                         <MudText Typo="Typo.h6">Nightly Job Trends</MudText>
                         <MudSpacer />
                         <MudSelect T="string" Dense="true" @bind-Value="_selectedSqlJobId" Label="Job">
@@ -55,17 +65,22 @@
                                 <MudSelectItem Value="@job.Id">@job.Name</MudSelectItem>
                             }
                         </MudSelect>
-                        
-<MudSelect T="int" Dense="true" @bind-Value="_historyTake" Label="Points">
-    <MudSelectItem T="int" Value="7">7</MudSelectItem>
-    <MudSelectItem T="int" Value="14">14</MudSelectItem>
-    <MudSelectItem T="int" Value="30">30</MudSelectItem>
-</MudSelect>
-                        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Refresh" OnClick="ReloadChartAsync">Reload</MudButton>
+                        <MudSelect T="int" Dense="true" @bind-Value="_historyTake" Label="Points">
+                            <MudSelectItem Value="7">7</MudSelectItem>
+                            <MudSelectItem Value="14">14</MudSelectItem>
+                            <MudSelectItem Value="30">30</MudSelectItem>
+                        </MudSelect>
+                        <MudButton Variant="Variant.Outlined"
+                                   StartIcon="@Icons.Material.Filled.Refresh"
+                                   OnClick="ReloadChartAsync">
+                            Reload
+                        </MudButton>
                     </MudStack>
 
                     @if (_plotData is null)
-                    { <MudSkeleton Height="220px" /> }
+                    {
+                        <MudSkeleton Height="220px" />
+                    }
                     else
                     {
                         <PlotlyChart Data="_plotData" Layout="_plotLayout" Config="_plotConfig" HeightPx="220" />
@@ -78,25 +93,32 @@
             <MudPaper Class="pa-3 recent-alerts" Style="height:320px;overflow:auto;">
                 <MudStack Spacing="2">
                     <MudText Typo="Typo.h6">Recent Alerts</MudText>
-                    <MudText Typo="Typo.caption" Class="opacity-70">@_activeAlertsCount Active</MudText>
+                    <MudText Typo="Typo.caption" Class="opacity-70">@_activeAlertsCount active</MudText>
+
                     @if (_recentAlerts.Count == 0)
                     {
                         <MudText Class="opacity-70">No alerts in the selected window.</MudText>
                     }
                     else
                     {
-                        <MudList T="string" Dense="true">
+                        <MudList T="AlertItem" Dense="true">
                             @foreach (var a in _recentAlerts)
                             {
-                                <MudListItem T="string">
+                                <MudListItem T="AlertItem">
                                     <MudStack Spacing="1">
                                         <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
                                             @if (a.Status == CheckStatus.Unhealthy)
-                                            { <MudIcon Icon="@Icons.Material.Filled.Error" Size="Size.Small" /> }
+                                            {
+                                                <MudIcon Icon="@Icons.Material.Filled.Error" Size="Size.Small" />
+                                            }
                                             else if (a.Status == CheckStatus.Degraded)
-                                            { <MudIcon Icon="@Icons.Material.Filled.Warning" Size="Size.Small" /> }
+                                            {
+                                                <MudIcon Icon="@Icons.Material.Filled.Warning" Size="Size.Small" />
+                                            }
                                             else
-                                            { <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" /> }
+                                            {
+                                                <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" />
+                                            }
                                             <MudText Typo="Typo.body2">@a.Name</MudText>
                                             <MudSpacer />
                                             <MudText Typo="Typo.caption">@a.ObservedAtLocal.ToString("g")</MudText>
@@ -118,8 +140,13 @@
     <!-- Filter + Grid -->
     <MudPaper Class="pa-3">
         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="searchbar mb-2">
-            <MudTextField @bind-Value="_search" Placeholder="Search services, teams, or tags..." Dense="true" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
+            <MudTextField @bind-Value="_search"
+                          Placeholder="Search services, jobs, or tags..."
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search"
+                          Dense="true" />
         </MudStack>
+
         <MudTable Items="_filteredRows" Dense="true" Hover="true" Bordered="true" Striped="true">
             <HeaderContent>
                 <MudTh>Service</MudTh>
@@ -135,16 +162,37 @@
                 <MudTd>
                     @if (_latest.TryGetValue(context.Id, out var last))
                     {
-                        @if (last.Status == CheckStatus.Healthy) { <MudChip T="string" Color="Color.Success" Size="Size.Small">Ok</MudChip> }
-                        else if (last.Status == CheckStatus.Degraded) { <MudChip T="string" Color="Color.Warning" Size="Size.Small">Warning</MudChip> }
-                        else if (last.Status == CheckStatus.Unhealthy) { <MudChip T="string" Color="Color.Error" Size="Size.Small">Error</MudChip> }
-                        else { <MudChip T="string" Size="Size.Small">Unknown</MudChip> }
+                        @if (last.Status == CheckStatus.Healthy)
+                        {
+                            <MudChip T="string" Color="Color.Success" Size="Size.Small">Ok</MudChip>
+                        }
+                        else if (last.Status == CheckStatus.Degraded)
+                        {
+                            <MudChip T="string" Color="Color.Warning" Size="Size.Small">Warning</MudChip>
+                        }
+                        else if (last.Status == CheckStatus.Unhealthy)
+                        {
+                            <MudChip T="string" Color="Color.Error" Size="Size.Small">Error</MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Size="Size.Small">Unknown</MudChip>
+                        }
                     }
-                    else { <MudChip T="string" Size="Size.Small">No data</MudChip> }
+                    else
+                    {
+                        <MudChip T="string" Size="Size.Small">No data</MudChip>
+                    }
                 </MudTd>
                 <MudTd>@(GetEnv(context) ?? "—")</MudTd>
-                <MudTd>@(_latest.TryGetValue(context.Id, out var r2) ? r2.ObservedAt.ToLocalTime().ToString("g") : "")</MudTd>
-                <MudTd Class="table-actions"><MudLink Href=$"/job/{context.Id}"><MudIcon Icon="@Icons.Material.Filled.OpenInNew" /></MudLink></MudTd>
+                <MudTd>@(_latest.TryGetValue(context.Id, out var r2)
+                    ? r2.ObservedAt.ToLocalTime().ToString("g")
+                    : "")</MudTd>
+                <MudTd Class="table-actions">
+                    <MudLink Href=$"/job/{context.Id}">
+                        <MudIcon Icon="@Icons.Material.Filled.OpenInNew" />
+                    </MudLink>
+                </MudTd>
             </RowTemplate>
         </MudTable>
     </MudPaper>
@@ -154,22 +202,32 @@
 @code {
     private List<CheckDescriptor> _rows = new();
     private List<CheckDescriptor> _filteredRows = new();
-    private Dictionary<string, CheckResult> _latest = new();
-    private HashSet<string> _environments = new();
-    private string _selectedEnv = "";
-    private string _search = "";
-    private string _window = "24h";
+    private readonly Dictionary<string, CheckResult> _latest = new();
+    private readonly HashSet<string> _environments = new();
 
-    // KPI model
+    private string _selectedEnv = "__ALL__";   // sentinel for "All Environments"
+    private string _search = string.Empty;
+    private string _window = "Last24Hours";
+
+    // KPIs
     private record Kpi(string Title, int Healthy, int Total)
     {
-        public int PercentHealthy => Total == 0 ? 0 : (int)Math.Round((double)Healthy * 100 / Total);
+        public int PercentHealthy => Total == 0 ? 0 : (int)Math.Round((double)Healthy * 100d / Total);
     }
     private List<Kpi> _kpis = new();
 
     // Alerts
+    private class AlertItem
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public CheckStatus Status { get; set; }
+        public string? Message { get; set; }
+        public DateTimeOffset ObservedAt { get; set; }
+        public DateTime ObservedAtLocal => ObservedAt.ToLocalTime().DateTime;
+    }
     private List<AlertItem> _recentAlerts = new();
-    private int _activeAlertsCount = 0;
+    private int _activeAlertsCount;
 
     // SQL Job chart (Plotly)
     private List<CheckDescriptor> _sqlJobs = new();
@@ -188,40 +246,47 @@
     {
         _rows = (await CheckStore.ListAsync()).ToList();
         _latest.Clear();
+        _environments.Clear();
 
         foreach (var d in _rows)
         {
             var latest = await ResultStore.GetLatestAsync(d.Id);
-            if (latest is not null) _latest[d.Id] = latest;
+            if (latest is not null)
+                _latest[d.Id] = latest;
 
             var env = GetEnv(d);
-            if (!string.IsNullOrWhiteSpace(env)) _environments.Add(env);
+            if (!string.IsNullOrWhiteSpace(env))
+                _environments.Add(env);
         }
 
         BuildKpis();
-        BuildAlerts();
+        await BuildAlertsAsync();
         BuildSqlJobs();
-
         ApplyFilters();
         await ReloadChartAsync();
-        StateHasChanged();
     }
 
     private void BuildKpis()
     {
-        // heuristic by type string
-        (int ok, int total) Count(Func<CheckDescriptor,bool> pred)
+        (int ok, int total) Count(Func<CheckDescriptor, bool> pred)
         {
             var set = _rows.Where(pred).ToList();
-            int healthy = set.Count(d => _latest.TryGetValue(d.Id, out var r) && r.Status == CheckStatus.Healthy);
+            var healthy = set.Count(d =>
+                _latest.TryGetValue(d.Id, out var r) &&
+                r.Status == CheckStatus.Healthy);
             return (healthy, set.Count);
         }
+
         var jobs = Count(d => d.Type.Contains("job", StringComparison.OrdinalIgnoreCase));
-        var apis = Count(d => d.Type.Contains("http", StringComparison.OrdinalIgnoreCase) || d.Type.Contains("api", StringComparison.OrdinalIgnoreCase));
-        var dbs = Count(d => d.Type.Contains("db", StringComparison.OrdinalIgnoreCase) || d.Type.Contains("sql", StringComparison.OrdinalIgnoreCase));
+        var apis = Count(d => d.Type.Contains("http", StringComparison.OrdinalIgnoreCase) ||
+                              d.Type.Contains("api", StringComparison.OrdinalIgnoreCase));
+        var dbs = Count(d => d.Type.Contains("db", StringComparison.OrdinalIgnoreCase) ||
+                             d.Type.Contains("sql", StringComparison.OrdinalIgnoreCase));
         var accounts = Count(d => d.Type.Contains("account", StringComparison.OrdinalIgnoreCase));
-        var servers = Count(d => d.Type.Contains("server", StringComparison.OrdinalIgnoreCase) || d.Type.Contains("host", StringComparison.OrdinalIgnoreCase));
-        var tickets = Count(d => d.Type.Contains("ticket", StringComparison.OrdinalIgnoreCase) || d.Name.Contains("ServiceNow", StringComparison.OrdinalIgnoreCase));
+        var servers = Count(d => d.Type.Contains("server", StringComparison.OrdinalIgnoreCase) ||
+                                 d.Type.Contains("host", StringComparison.OrdinalIgnoreCase));
+        var tickets = Count(d => d.Type.Contains("ticket", StringComparison.OrdinalIgnoreCase) ||
+                                 d.Name.Contains("ServiceNow", StringComparison.OrdinalIgnoreCase));
 
         _kpis = new()
         {
@@ -234,18 +299,20 @@
         };
     }
 
-    private void BuildAlerts()
+    private async Task BuildAlertsAsync()
     {
-        var (from, _) = GetWindowUtc();
-        var alertBuffer = new List<AlertItem>();
+        var (from, to) = GetWindowUtc();
+        var buffer = new List<AlertItem>();
+
         foreach (var d in _rows)
         {
-            var recent = ResultStore.ListRecentAsync(d.Id, 100).GetAwaiter().GetResult();
+            var recent = await ResultStore.ListRecentAsync(d.Id, 100);
             foreach (var r in recent)
             {
-                if (r.ObservedAt >= from && (r.Status == CheckStatus.Degraded || r.Status == CheckStatus.Unhealthy))
+                if (r.ObservedAt >= from &&
+                    (r.Status == CheckStatus.Degraded || r.Status == CheckStatus.Unhealthy))
                 {
-                    alertBuffer.Add(new AlertItem
+                    buffer.Add(new AlertItem
                     {
                         Id = d.Id,
                         Name = d.Name,
@@ -256,19 +323,25 @@
                 }
             }
         }
-        _recentAlerts = alertBuffer.OrderByDescending(a => a.ObservedAt).Take(30)
-                                   .Select(a => a with { ObservedAtLocal = a.ObservedAt.ToLocalTime().DateTime })
-                                   .ToList();
+
+        _recentAlerts = buffer
+            .OrderByDescending(a => a.ObservedAt)
+            .Take(30)
+            .ToList();
+
         _activeAlertsCount = _recentAlerts.Count(a => a.Status != CheckStatus.Healthy);
     }
 
     private void BuildSqlJobs()
     {
-        _sqlJobs = _rows.Where(r => r.Type.Contains("sqlagent", StringComparison.OrdinalIgnoreCase)
-                                 || r.Type.Contains("SqlAgent", StringComparison.OrdinalIgnoreCase)
-                                 || r.Type.Contains("SqlAgentJob", StringComparison.OrdinalIgnoreCase)
-                                 || r.Type.Contains("job", StringComparison.OrdinalIgnoreCase))
-                        .OrderBy(r => r.Name).ToList();
+        _sqlJobs = _rows
+            .Where(r =>
+                r.Type.Contains("sqlagent", StringComparison.OrdinalIgnoreCase) ||
+                r.Type.Contains("SqlAgent", StringComparison.OrdinalIgnoreCase) ||
+                r.Type.Contains("SqlAgentJob", StringComparison.OrdinalIgnoreCase) ||
+                r.Type.Contains("job", StringComparison.OrdinalIgnoreCase))
+            .OrderBy(r => r.Name)
+            .ToList();
 
         if (_selectedSqlJobId is null && _sqlJobs.Count > 0)
             _selectedSqlJobId = _sqlJobs.First().Id;
@@ -279,9 +352,9 @@
         var to = DateTimeOffset.UtcNow;
         return _window switch
         {
-            "7d" => (to.AddDays(-7), to),
-            "30d" => (to.AddDays(-30), to),
-            _ => (to.AddDays(-1), to)
+            "Last7Days" => (to.AddDays(-7), to),
+            "Last30Days" => (to.AddDays(-30), to),
+            _ => (to.AddDays(-1), to) // Last24Hours
         };
     }
 
@@ -289,15 +362,19 @@
     {
         IEnumerable<CheckDescriptor> q = _rows;
 
-        if (!string.IsNullOrWhiteSpace(_selectedEnv))
+        if (_selectedEnv != "__ALL__" && !string.IsNullOrWhiteSpace(_selectedEnv))
+        {
             q = q.Where(d => string.Equals(GetEnv(d), _selectedEnv, StringComparison.OrdinalIgnoreCase));
+        }
 
         if (!string.IsNullOrWhiteSpace(_search))
         {
             var s = _search.Trim();
-            q = q.Where(d => (d.Name?.Contains(s, StringComparison.OrdinalIgnoreCase) ?? false)
-                          || (d.Type?.Contains(s, StringComparison.OrdinalIgnoreCase) ?? false)
-                          || (string.Join(',', d.Tags ?? Array.Empty<string>()).Contains(s, StringComparison.OrdinalIgnoreCase)));
+            q = q.Where(d =>
+                (d.Name?.Contains(s, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (d.Type?.Contains(s, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (string.Join(',', d.Tags ?? Array.Empty<string>())
+                    .Contains(s, StringComparison.OrdinalIgnoreCase)));
         }
 
         _filteredRows = q.OrderBy(d => d.Name).ToList();
@@ -305,29 +382,47 @@
 
     private string? GetEnv(CheckDescriptor d)
     {
-        var tag = d.Tags?.FirstOrDefault(t => t.StartsWith("env:", StringComparison.OrdinalIgnoreCase));
+        var tag = d.Tags?.FirstOrDefault(t =>
+            t.StartsWith("env:", StringComparison.OrdinalIgnoreCase));
         return tag is null ? null : tag.Split(':', 2)[1];
     }
 
     private async Task ReloadChartAsync()
     {
-        _plotData = null; _plotLayout = null; _plotConfig = null;
-        if (string.IsNullOrWhiteSpace(_selectedSqlJobId)) return;
+        _plotData = null;
+        _plotLayout = null;
+        _plotConfig = null;
+
+        if (string.IsNullOrWhiteSpace(_selectedSqlJobId))
+            return;
 
         var desc = await CheckStore.GetAsync(_selectedSqlJobId);
-        if (desc is null) return;
+        if (desc is null)
+            return;
 
-        if (!desc.Parameters.TryGetValue("connectionString", out var cs)) return;
-        if (!desc.Parameters.TryGetValue("jobName", out var job)) return;
+        if (!desc.Parameters.TryGetValue("connectionString", out var cs))
+            return;
+        if (!desc.Parameters.TryGetValue("jobName", out var job))
+            return;
 
-        var (exists, lastStatus, lastRunAt, history) = await SqlSvc.GetJobSummaryAndHistoryAsync(cs, job, _historyTake);
-        if (!exists) return;
+        var (exists, _, _, history) =
+            await SqlSvc.GetJobSummaryAndHistoryAsync(cs, job, _historyTake);
 
-        var labels = history.Select(h => h.at.ToLocalTime().ToString("M/d")).ToArray();
-        var minutes = history.Select(h => Math.Round(h.durationSec / 60.0, 2)).ToArray();
+        if (!exists)
+            return;
 
-        _plotData = new object[] {
-            new {
+        var labels = history
+            .Select(h => h.at.ToLocalTime().ToString("M/d"))
+            .ToArray();
+
+        var minutes = history
+            .Select(h => Math.Round(h.durationSec / 60.0, 2))
+            .ToArray();
+
+        _plotData = new object[]
+        {
+            new
+            {
                 type = "scatter",
                 mode = "lines+markers",
                 x = labels,
@@ -335,7 +430,8 @@
                 name = job
             }
         };
-        _plotLayout = new {
+        _plotLayout = new
+        {
             margin = new { l = 40, r = 10, t = 10, b = 30 },
             yaxis = new { title = "Minutes" },
             xaxis = new { title = "" },
@@ -344,29 +440,10 @@
         _plotConfig = new { responsive = true };
     }
 
-    private record AlertItem
+    protected override Task OnParametersSetAsync()
     {
-        public string Id { get; init; } = default!;
-        public string Name { get; init; } = default!;
-        public CheckStatus Status { get; init; }
-        public string? Message { get; init; }
-        public DateTimeOffset ObservedAt { get; init; }
-        public DateTime ObservedAtLocal { get; init; }
-    }
-
-    private string _prevSearch = "";
-    private string _prevEnv = "";
-    private string _prevWindow = "";
-
-    protected override void OnParametersSet()
-    {
-        if (_prevSearch != _search || _prevEnv != _selectedEnv || _prevWindow != _window)
-        {
-            _prevSearch = _search;
-            _prevEnv = _selectedEnv;
-            _prevWindow = _window;
-            ApplyFilters();
-            BuildAlerts();
-        }
+        // Re-apply filters when parameters change (search/env/window)
+        ApplyFilters();
+        return Task.CompletedTask;
     }
 }
