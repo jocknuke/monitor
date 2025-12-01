@@ -17,7 +17,7 @@
 {
     <MudCard Class="pa-4">
         <MudText Typo="Typo.h6">Last @DataCount Runs (Duration in minutes)</MudText>
-        <MudChart ChartType="ChartType.Line" Labels="_labels" ChartSeries="_series" />
+        <MudChart ChartType="ChartType.Line" XAxisLabels="@_labels" ChartSeries="@_series" />
     </MudCard>
 }
 else
